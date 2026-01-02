@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h2>正在生成大纲...</h2>
+        <p class="text-muted">{{ novel.title }} - {{ novel.type }}</p>
+
+        <!-- 进度条 -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <div class="mb-3">
+                    <h5 id="status-message">正在初始化...</h5>
+                    <div class="progress" style="height: 25px;">
+                        <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar" style="width: 0%">0%</div>
+                    </div>
+                </div>
+
+                <div id="status-info" class="text-muted small">
+                    预计完成时间：3-5 分钟
+                </div>
+
+                <!-- 完成后的操作按钮 -->
+                <div id="complete-actions" class="mt-4 d-none">
+                    <div class="alert alert-success">
+                        <strong>大纲生成完成！</strong>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('novel_detail', novel_id=novel.id) }}" class="btn btn-primary">
+                            查看大纲和章节
+                        </a>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                            返回工作台
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 失败后的操作 -->
+                <div id="failed-actions" class="mt-4 d-none">
+                    <div class="alert alert-danger">
+                        <strong>生成失败！</strong><br>
+                        <span id="error-message"></span>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('generate_outline') }}" class="btn btn-warning">
+                            重新生成
+                        </a>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                            返回工作台
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 生成过程说明 -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <strong>生成步骤</strong>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li class="mb-2">✅ 1. 优化生成指令</li>
+                    <li class="mb-2">⏳ 2. 生成作品基础信息</li>
+                    <li class="mb-2">⏳ 3. 设计核心人设</li>
+                    <li class="mb-2">⏳ 4. 构建世界观设定</li>
+                    <li class="mb-2">⏳ 5. 列出爽点清单</li>
+                    <li class="mb-2">⏳ 6. 设计三幕结构</li>
+                    <li class="mb-2">⏳ 7. 生成章节大纲</li>
+                    <li class="mb-2">⏳ 8. 规划支线与后续走向</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 轮询获取生成状态
+let pollInterval = null;
+
+function checkStatus() {
+    fetch('{{ url_for("api_outline_status", novel_id=novel.id) }}')
+        .then(response => response.json())
+        .then(data => {
+            // 更新进度条
+            const progress = data.progress || 0;
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = progress + '%';
+            progressBar.textContent = Math.round(progress) + '%';
+
+            // 更新状态消息
+            const statusMessage = document.getElementById('status-message');
+            statusMessage.textContent = data.message || '正在生成...';
+
+            // 检查是否完成
+            if (data.status === 'completed') {
+                clearInterval(pollInterval);
+                progressBar.classList.remove('progress-bar-animated');
+                progressBar.classList.add('bg-success');
+                document.getElementById('complete-actions').classList.remove('d-none');
+                document.getElementById('status-info').classList.add('d-none');
+            } else if (data.status === 'failed') {
+                clearInterval(pollInterval);
+                progressBar.classList.remove('progress-bar-animated');
+                progressBar.classList.add('bg-danger');
+                document.getElementById('failed-actions').classList.remove('d-none');
+                document.getElementById('error-message').textContent = data.message || '未知错误';
+                document.getElementById('status-info').classList.add('d-none');
+            }
+        })
+        .catch(error => {
+            console.error('Error checking status:', error);
+        });
+}
+
+// 开始轮询（每3秒）
+pollInterval = setInterval(checkStatus, 3000);
+
+// 立即检查一次
+checkStatus();
+
+// 页面卸载时清除定时器
+window.addEventListener('beforeunload', function() {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+    }
+});
+</script>
+{% endblock %}

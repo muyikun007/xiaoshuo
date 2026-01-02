@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <h2>AI 智能生成小说大纲</h2>
+        <p class="text-muted">使用 AI 自动生成完整的小说大纲，包括人设、世界观、爽点、章节梗概等</p>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('generate_outline') }}">
+                    <!-- 基本信息 -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="title" class="form-label">小说标题</label>
+                            <input type="text" class="form-control" id="title" name="title" required placeholder="例如：权力巅峰">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="channel" class="form-label">频道</label>
+                            <select class="form-select" id="channel" name="channel">
+                                <option value="男频">男频</option>
+                                <option value="女频">女频</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 类型选择 -->
+                    <div class="mb-3">
+                        <label for="type" class="form-label">小说类型 <span class="text-muted">(支持40+类型)</span></label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="">-- 请选择类型 --</option>
+                            {% for t in novel_types %}
+                            <option value="{{ t }}">{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- 主题输入 -->
+                    <div class="mb-3">
+                        <label for="theme" class="form-label">核心主题/设定</label>
+                        <textarea class="form-control" id="theme" name="theme" rows="3" required placeholder="描述你的故事主题和核心设定..."></textarea>
+
+                        <!-- 主题建议 -->
+                        <div id="theme-suggestions" class="mt-2 d-none">
+                            <small class="text-muted">主题建议（点击可快速填入）：</small>
+                            <div id="suggestions-list" class="mt-1"></div>
+                        </div>
+                    </div>
+
+                    <!-- 高级设置 -->
+                    <div class="mb-3">
+                        <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#advancedSettings">
+                            高级设置 <i class="bi bi-chevron-down"></i>
+                        </a>
+                    </div>
+
+                    <div class="collapse" id="advancedSettings">
+                        <div class="card card-body mb-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="chapters" class="form-label">章节数量</label>
+                                    <input type="number" class="form-control" id="chapters" name="chapters" value="100" min="20" max="500">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="provider" class="form-label">AI 模型提供商</label>
+                                    <select class="form-select" id="provider" name="provider">
+                                        <option value="Gemini" selected>Gemini (推荐)</option>
+                                        <option value="Doubao">豆包 (字节跳动)</option>
+                                        <option value="Claude">Claude (Anthropic)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="model" class="form-label">模型版本</label>
+                                    <select class="form-select" id="model" name="model">
+                                        <option value="gemini-3-pro-preview" selected>Gemini 3 Pro Preview</option>
+                                        <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                        <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 费用提示 -->
+                    <div class="alert alert-info">
+                        <strong>费用说明：</strong>
+                        <ul class="mb-0">
+                            <li>生成大纲消耗 <strong>1 次数卡</strong></li>
+                            <li>预计生成时间：3-5 分钟</li>
+                            <li>当前余额：<strong>{{ current_user.token_balance }}</strong> Token</li>
+                        </ul>
+                    </div>
+
+                    <!-- 提交按钮 -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg" {% if current_user.token_balance < 1 %}disabled{% endif %}>
+                            <i class="bi bi-magic"></i> 开始生成大纲
+                        </button>
+                        {% if current_user.token_balance < 1 %}
+                        <p class="text-danger text-center">余额不足，请先<a href="{{ url_for('recharge') }}">充值</a></p>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">返回工作台</a>
+        </div>
+    </div>
+</div>
+
+<script>
+// 类型改变时显示主题建议
+document.getElementById('type').addEventListener('change', function() {
+    const type = this.value;
+    if (!type) {
+        document.getElementById('theme-suggestions').classList.add('d-none');
+        return;
+    }
+
+    // 获取主题建议
+    const suggestions = {{ theme_suggestions | tojson }};
+    const typeSuggestions = suggestions[type] || [];
+
+    if (typeSuggestions.length > 0) {
+        const suggestionsDiv = document.getElementById('suggestions-list');
+        suggestionsDiv.innerHTML = '';
+
+        typeSuggestions.forEach(function(suggestion) {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-secondary me-1 mb-1';
+            badge.style.cursor = 'pointer';
+            badge.textContent = suggestion;
+            badge.onclick = function() {
+                document.getElementById('theme').value = suggestion;
+            };
+            suggestionsDiv.appendChild(badge);
+        });
+
+        document.getElementById('theme-suggestions').classList.remove('d-none');
+    } else {
+        document.getElementById('theme-suggestions').classList.add('d-none');
+    }
+});
+</script>
+{% endblock %}
