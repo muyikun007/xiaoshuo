@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>书币充值</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+
+<div class="bg-white p-8 rounded shadow-lg w-full max-w-md">
+    <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold mb-2">书币充值中心</h1>
+        <p class="text-gray-500">当前余额：<span class="text-green-600 font-bold text-xl">{{ user.balance }}</span></p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-6">
+        <button onclick="selectAmount(6)" class="border-2 border-blue-500 p-4 rounded hover:bg-blue-50 focus:bg-blue-100 transition">
+            <div class="text-xl font-bold">6 元</div>
+            <div class="text-sm text-gray-500">6000 书币</div>
+        </button>
+        <button onclick="selectAmount(30)" class="border p-4 rounded hover:bg-gray-50">
+            <div class="text-xl font-bold">30 元</div>
+            <div class="text-sm text-gray-500">30000 书币</div>
+        </button>
+        <button onclick="selectAmount(98)" class="border p-4 rounded hover:bg-gray-50">
+            <div class="text-xl font-bold">98 元</div>
+            <div class="text-sm text-gray-500">100000 书币</div>
+        </button>
+        <button onclick="selectAmount(198)" class="border p-4 rounded hover:bg-gray-50">
+            <div class="text-xl font-bold">198 元</div>
+            <div class="text-sm text-gray-500">250000 书币</div>
+        </button>
+    </div>
+
+    <form action="/api/topup" method="post" id="payForm">
+        <input type="hidden" name="amount" id="amountInput" value="6">
+        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow flex justify-center items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            立即支付
+        </button>
+    </form>
+
+    <div class="mt-6 text-center">
+        <a href="/" class="text-gray-500 hover:underline">返回首页</a>
+    </div>
+</div>
+
+<script>
+    function selectAmount(val) {
+        // Reset styles (simplified)
+        document.querySelectorAll('button').forEach(b => b.classList.remove('border-blue-500'));
+        event.currentTarget.classList.add('border-blue-500');
+        document.getElementById('amountInput').value = val;
+    }
+    
+    // Check for success param
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success')) {
+        alert("充值成功！");
+        window.location.href = '/';
+    }
+</script>
+
+</body>
+</html>
+

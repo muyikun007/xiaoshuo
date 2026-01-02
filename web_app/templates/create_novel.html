@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>新建作品</h2>
+<form method="POST">
+    <div class="mb-3">
+        <label>作品名称</label>
+        <input type="text" name="title" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label>类型</label>
+        <select name="type" class="form-select">
+            <option value="官场逆袭">官场逆袭</option>
+            <option value="都市热血">都市热血</option>
+            <option value="悬疑破案">悬疑破案</option>
+            <option value="仙侠升级">仙侠升级</option>
+        </select>
+    </div>
+    <div class="mb-3">
+        <label>主题/设定</label>
+        <input type="text" name="theme" class="form-control">
+    </div>
+    <div class="mb-3">
+        <label>粘贴大纲（自动解析章节）</label>
+        <textarea name="outline" class="form-control" rows="10" placeholder="格式：第1章 标题..."></textarea>
+        <div class="form-text">系统将自动识别“第X章”开头的段落作为章节信息。</div>
+    </div>
+    <button type="submit" class="btn btn-primary">创建</button>
+</form>
+{% endblock %}
+

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>个人中心</h2>
+    <a class="btn btn-outline-primary" href="{{ url_for('recharge') }}">充值Token</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p class="mb-2"><strong>用户名：</strong>{{ current_user.username }}</p>
+                <p class="mb-2"><strong>Token：</strong>{{ current_user.token_balance }}</p>
+            </div>
+            <div class="col-md-6">
+                <p class="mb-2"><strong>注册时间：</strong>{{ current_user.created_at.strftime('%Y-%m-%d %H:%M:%S') if current_user.created_at else '-' }}</p>
+                <p class="mb-2"><strong>最近登录：</strong>{{ current_user.last_login_at.strftime('%Y-%m-%d %H:%M:%S') if current_user.last_login_at else '-' }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 爽文工场</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+<nav class="bg-white shadow mb-8">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+        <a href="/" class="text-2xl font-bold text-blue-600">AI 爽文工场</a>
+        <div class="flex items-center space-x-4">
+            <span class="text-gray-600">余额: <span class="font-bold text-green-600">{{ user.balance }}</span> 书币</span>
+            <a href="/pay" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded">充值</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mx-auto px-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- 左侧：粘贴大纲创建 -->
+        <div class="bg-white p-6 rounded shadow md:col-span-1">
+            <h2 class="text-xl font-bold mb-4 border-b pb-2">导入大纲创作</h2>
+            <form action="/api/create_from_outline" method="post">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">小说类型</label>
+                    <select name="type" class="w-full border rounded px-3 py-2 bg-gray-50">
+                        <option value="官场逆袭">官场逆袭</option>
+                        <option value="扫黑">扫黑</option>
+                        <option value="都市热血">都市热血</option>
+                        <option value="商业复仇">商业复仇</option>
+                        <option value="悬疑破案">悬疑破案</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">核心主题</label>
+                    <input type="text" name="theme" class="w-full border rounded px-3 py-2" placeholder="例如：草根逆袭...">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">大纲内容</label>
+                    <p class="text-xs text-gray-500 mb-1">请确保章节格式为“第X章 标题：内容”</p>
+                    <textarea name="outline" rows="10" class="w-full border rounded px-3 py-2" placeholder="第1章 风起云涌...&#10;第2章 初露锋芒..." required></textarea>
+                </div>
+
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    解析大纲并创建项目
+                </button>
+            </form>
+        </div>
+
+        <!-- 右侧：我的书架 -->
+        <div class="bg-white p-6 rounded shadow md:col-span-2">
+            <h2 class="text-xl font-bold mb-4 border-b pb-2">我的书架</h2>
+            {% if novels %}
+                <div class="space-y-4">
+                    {% for novel in novels %}
+                    <div class="border p-4 rounded hover:bg-gray-50 flex justify-between items-center">
+                        <div>
+                            <div class="flex items-center">
+                                <h3 class="font-bold text-lg mr-2">{{ novel.novel_type }}</h3>
+                                <span class="text-xs text-gray-400">{{ novel.created_at.strftime('%m-%d %H:%M') }}</span>
+                            </div>
+                            <p class="text-sm text-gray-500 truncate w-96">{{ novel.theme }}</p>
+                        </div>
+                        <a href="/novel/{{ novel.id }}" class="text-blue-600 hover:text-blue-800 font-semibold border border-blue-600 px-3 py-1 rounded hover:bg-blue-50">进入创作 &rarr;</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12 text-gray-400">
+                    <p class="text-xl mb-2">📚</p>
+                    <p>还没有作品，请在左侧粘贴大纲开始创作</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

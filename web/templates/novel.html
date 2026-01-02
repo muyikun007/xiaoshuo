@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创作中心 - {{ novel.novel_type }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+<!-- 顶部导航 -->
+<nav class="bg-white shadow sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center">
+            <a href="/" class="text-gray-500 hover:text-gray-700 mr-4 flex items-center">
+                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                返回
+            </a>
+            <div>
+                <h1 class="font-bold text-lg">{{ novel.novel_type }} <span class="text-sm font-normal text-gray-500 ml-2">ID: {{ novel.id }}</span></h1>
+            </div>
+        </div>
+        <div class="flex space-x-3">
+            <button onclick="autoGenerateAll()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded shadow flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                一键全自动生成
+            </button>
+        </div>
+    </div>
+</nav>
+
+<div class="container mx-auto px-4 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- 左侧：大纲预览 -->
+        <div class="lg:col-span-1">
+            <div class="bg-white p-5 rounded shadow h-[calc(100vh-100px)] overflow-hidden flex flex-col sticky top-20">
+                <h2 class="text-lg font-bold mb-3 border-b pb-2 flex-shrink-0">大纲预览</h2>
+                <div class="prose text-sm overflow-y-auto flex-grow pr-2" id="outline-content"></div>
+                <textarea id="raw-outline" class="hidden">{{ novel.outline }}</textarea>
+            </div>
+        </div>
+
+        <!-- 右侧：章节列表 -->
+        <div class="lg:col-span-2">
+            <div class="bg-white p-6 rounded shadow min-h-[calc(100vh-100px)]">
+                <div class="flex justify-between items-center mb-6 border-b pb-2">
+                    <h2 class="text-xl font-bold">章节列表</h2>
+                    <div class="text-sm text-gray-500">
+                        自动轮询状态：<span id="poll-status" class="text-green-600">运行中</span>
+                    </div>
+                </div>
+                
+                <div class="space-y-6" id="chapter-list">
+                    {% for chap in novel.chapters %}
+                    <div class="border rounded-lg p-5 transition hover:shadow-md relative bg-white" id="chap-card-{{ chap.id }}" data-status="{{ chap.status }}">
+                        <!-- 状态标签 -->
+                        <div class="absolute top-4 right-4">
+                            <span class="status-badge text-xs font-bold px-2 py-1 rounded 
+                                {% if chap.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif chap.status == 'generating' %}bg-blue-100 text-blue-800 animate-pulse
+                                {% elif chap.status == 'error' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {% if chap.status == 'completed' %}已完成{% elif chap.status == 'generating' %}生成中...{% elif chap.status == 'error' %}生成失败{% else %}待生成{% endif %}
+                            </span>
+                        </div>
+
+                        <h3 class="font-bold text-lg mb-2 pr-20">第{{ chap.chapter_num }}章 {{ chap.title }}</h3>
+                        <div class="bg-gray-50 p-3 rounded text-sm text-gray-600 mb-4 border-l-4 border-gray-300 italic">
+                            {{ chap.summary }}
+                        </div>
+                        
+                        <!-- 内容区域 -->
+                        <div class="content-area">
+                            {% if chap.status == 'completed' %}
+                                <div class="prose max-w-none text-sm bg-green-50 p-4 rounded border border-green-100 max-h-96 overflow-y-auto whitespace-pre-wrap">{{ chap.content }}</div>
+                            {% elif chap.status == 'error' %}
+                                <div class="text-red-600 text-sm p-2 bg-red-50 rounded">失败原因: {{ chap.content }}</div>
+                                <button onclick="generateChapter({{ chap.id }})" class="mt-2 text-blue-600 hover:underline text-sm">重试</button>
+                            {% else %}
+                                <button onclick="generateChapter({{ chap.id }})" class="gen-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm transition flex items-center" {% if chap.status == 'generating' %}disabled{% endif %}>
+                                    {% if chap.status == 'generating' %}
+                                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        正在生成...
+                                    {% else %}
+                                        <span>开始生成</span>
+                                        <span class="ml-2 opacity-75 text-xs border-l pl-2 border-white/30">-1000书币</span>
+                                    {% endif %}
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const NOVEL_ID = {{ novel.id }};
+    
+    // 1. Render Markdown
+    document.getElementById('outline-content').innerHTML = marked.parse(document.getElementById('raw-outline').value);
+
+    // 2. Generate Single Chapter
+    async function generateChapter(chapId) {
+        const card = document.getElementById(`chap-card-${chapId}`);
+        const btn = card.querySelector('.gen-btn');
+        
+        // Optimistic UI update
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>正在生成...`;
+        }
+        updateStatusBadge(card, 'generating');
+
+        try {
+            const formData = new FormData();
+            formData.append('provider', 'Gemini');
+            
+            const res = await fetch(`/api/generate_chapter/${chapId}`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (data.status !== 'success') {
+                alert(data.msg);
+                updateStatusBadge(card, 'pending'); // revert
+                if(btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<span>开始生成</span><span class="ml-2 opacity-75 text-xs border-l pl-2 border-white/30">-1000书币</span>`;
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            alert("请求失败");
+        }
+    }
+
+    // 3. Auto Generate All
+    async function autoGenerateAll() {
+        if (!confirm("这将按顺序自动请求生成所有未完成的章节，请确保余额充足。继续？")) return;
+        
+        const cards = document.querySelectorAll('[id^="chap-card-"]');
+        for (let card of cards) {
+            const status = card.getAttribute('data-status');
+            if (status === 'pending' || status === 'error') {
+                const chapId = card.id.split('-')[2];
+                generateChapter(chapId);
+                // 简单的防并发控制，每隔 1 秒请求一个，避免瞬间炸后端
+                await new Promise(r => setTimeout(r, 1000)); 
+            }
+        }
+    }
+
+    // 4. Polling Status
+    function updateStatusBadge(card, status) {
+        const badge = card.querySelector('.status-badge');
+        card.setAttribute('data-status', status);
+        
+        if (status === 'completed') {
+            badge.className = "status-badge text-xs font-bold px-2 py-1 rounded bg-green-100 text-green-800";
+            badge.innerText = "已完成";
+        } else if (status === 'generating') {
+            badge.className = "status-badge text-xs font-bold px-2 py-1 rounded bg-blue-100 text-blue-800 animate-pulse";
+            badge.innerText = "生成中...";
+        } else if (status === 'error') {
+            badge.className = "status-badge text-xs font-bold px-2 py-1 rounded bg-red-100 text-red-800";
+            badge.innerText = "生成失败";
+        } else {
+            badge.className = "status-badge text-xs font-bold px-2 py-1 rounded bg-gray-100 text-gray-600";
+            badge.innerText = "待生成";
+        }
+    }
+
+    async function pollStatus() {
+        try {
+            const res = await fetch(`/api/novel/${NOVEL_ID}/status`);
+            const data = await res.json();
+            
+            data.chapters.forEach(chap => {
+                const card = document.getElementById(`chap-card-${chap.id}`);
+                if (!card) return;
+                
+                const currentStatus = card.getAttribute('data-status');
+                
+                // Only update if status changed
+                if (currentStatus !== chap.status) {
+                    updateStatusBadge(card, chap.status);
+                    
+                    // Update content if completed
+                    if (chap.status === 'completed') {
+                        const contentArea = card.querySelector('.content-area');
+                        contentArea.innerHTML = `<div class="prose max-w-none text-sm bg-green-50 p-4 rounded border border-green-100 max-h-96 overflow-y-auto whitespace-pre-wrap">${chap.content}</div>`;
+                    }
+                }
+            });
+        } catch (e) {
+            console.error("Poll error", e);
+        }
+    }
+
+    // Start polling every 3 seconds
+    setInterval(pollStatus, 3000);
+
+</script>
+
+</body>
+</html>

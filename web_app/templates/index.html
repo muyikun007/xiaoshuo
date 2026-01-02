@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="p-5 mb-4 bg-light rounded-3">
+    <div class="container-fluid py-5">
+        <h1 class="display-5 fw-bold">AI 辅助长篇小说创作</h1>
+        <p class="col-md-8 fs-4">基于 Gemini 模型，从大纲到正文，一键生成。按字数计费，精准控制成本。</p>
+        <a class="btn btn-primary btn-lg" href="{{ url_for('register') }}" role="button">立即开始</a>
+    </div>
+</div>
+{% endblock %}
+

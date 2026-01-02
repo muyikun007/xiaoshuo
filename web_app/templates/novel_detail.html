@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ novel.title }} <small class="text-muted">({{ novel.type }})</small></h2>
+<p class="lead">{{ novel.theme }}</p>
+
+<hr>
+<h3>章节列表</h3>
+<div class="list-group">
+    {% for chapter in chapters %}
+    <div class="list-group-item">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">第{{ chapter.chapter_num }}章 {{ chapter.title }}</h5>
+            <small>状态: <span id="status-{{ chapter.id }}">{{ '待生成' if chapter.status == 'pending' else ('生成中' if chapter.status == 'generating' else '已完成') }}</span> <span class="text-muted" id="eta-{{ chapter.id }}"></span></small>
+        </div>
+        <p class="mb-1">{{ chapter.summary }}</p>
+        
+        <div id="content-area-{{ chapter.id }}" class="mt-2" style="display: {{ 'block' if chapter.status in ['completed','generating'] else 'none' }};">
+            <textarea class="form-control mb-2" rows="10" readonly>{{ chapter.content or '' }}</textarea>
+            <small class="text-muted">字数: {{ chapter.word_count }} | 花费: {{ chapter.cost }}</small>
+        </div>
+
+        {% if chapter.status != 'completed' %}
+        <button class="btn btn-sm btn-outline-primary mt-2" onclick="generateChapter({{ chapter.id }})" id="btn-{{ chapter.id }}" {% if chapter.status == 'generating' %}disabled{% endif %}>
+            {% if chapter.status == 'generating' %}生成中...{% else %}生成正文（按字数扣费）{% endif %}
+        </button>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+function statusLabel(s) {
+    if (s === 'pending') return '待生成';
+    if (s === 'generating') return '生成中';
+    if (s === 'completed') return '已完成';
+    return s;
+}
+
+function generateChapter(chapId) {
+    if (!confirm("确定要生成吗？将根据生成字数扣除余额。")) return;
+    
+    $(`#btn-${chapId}`).prop('disabled', true).text('请求中...');
+    
+    $.post(`/generate_chapter/${chapId}`, function(data) {
+        if (data.status === 'started') {
+            $(`#status-${chapId}`).text(statusLabel('generating'));
+            $(`#btn-${chapId}`).text('生成中...');
+            pollStatus(chapId);
+        } else {
+            alert(data.error);
+            $(`#btn-${chapId}`).prop('disabled', false).text('生成正文（按字数扣费）');
+        }
+    }).fail(function(xhr) {
+        alert("请求失败: " + (xhr.responseJSON ? xhr.responseJSON.error : xhr.statusText));
+        $(`#btn-${chapId}`).prop('disabled', false).text('生成正文（按字数扣费）');
+    });
+}
+
+function pollStatus(chapId) {
+    const interval = setInterval(() => {
+        $.get(`/chapter_status/${chapId}`, function(data) {
+            $(`#status-${chapId}`).text(statusLabel(data.status));
+            if (typeof data.eta_seconds === 'number') {
+                $(`#eta-${chapId}`).text(`预计剩余：${data.eta_seconds}s`);
+            }
+            if (data.status === 'completed') {
+                clearInterval(interval);
+                $(`#btn-${chapId}`).hide();
+                const area = $(`#content-area-${chapId}`);
+                area.find('textarea').val(data.content);
+                area.find('small').text(`字数: ${data.word_count} | 花费: ${data.cost}`);
+                area.show();
+                alert(`第${chapId}章生成完成！`);
+            } else if (data.status === 'pending') {
+                $(`#btn-${chapId}`).prop('disabled', false).text('生成正文（按字数扣费）').show();
+            } else if (data.status === 'generating') {
+                $(`#btn-${chapId}`).prop('disabled', true).text('生成中...').show();
+                const area = $(`#content-area-${chapId}`);
+                area.find('textarea').val((data.content_preview || ''));
+                area.show();
+            }
+        });
+    }, 3000);
+}
+
+$(function() {
+    $('[id^=status-]').each(function() {
+        const span = $(this);
+        const chapId = this.id.replace('status-','');
+        const txt = span.text().trim();
+        if (txt === '生成中') {
+            $(`#btn-${chapId}`).prop('disabled', true).text('生成中...');
+            pollStatus(chapId);
+        } else if (txt === '待生成') {
+            $(`#btn-${chapId}`).prop('disabled', false).text('生成正文（按字数扣费）');
+        }
+    });
+});
+</script>
+{% endblock %}
