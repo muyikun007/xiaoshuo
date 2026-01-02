@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique @db.VarChar(150)
+  email         String?   @unique @db.VarChar(191)
+  phone         String?   @unique @db.VarChar(32)
+  passwordHash  String    @map("password_hash") @db.VarChar(255)
+  status        Int       @default(1) @db.SmallInt
+  tokenBalance  Int       @default(0) @map("token_balance")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  lastLoginAt   DateTime? @map("last_login_at")
+
+  novels        Novel[]
+
+  @@map("users")
+}
+
+model Novel {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  title       String    @default("未命名") @db.VarChar(150)
+  type        String?   @db.VarChar(50)
+  theme       String?   @db.VarChar(500)
+  outline     String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapters    Chapter[]
+
+  @@index([userId])
+  @@map("novels")
+}
+
+model Chapter {
+  id          Int       @id @default(autoincrement())
+  novelId     Int       @map("novel_id")
+  chapterNum  Int       @map("chapter_num")
+  title       String?   @db.VarChar(150)
+  summary     String?   @db.Text
+  content     String?   @db.Text
+  wordCount   Int       @default(0) @map("word_count")
+  cost        Int       @default(0)
+  status      String    @default("pending") @db.VarChar(20)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  novel       Novel     @relation(fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@index([novelId])
+  @@index([status])
+  @@map("chapters")
+}
