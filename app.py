@@ -35,35 +35,55 @@ DEFAULT_DOUBAO_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
 DEFAULT_CLAUDE_MODEL = "claude-3-5-sonnet-20241022"
 DEFAULT_CLAUDE_BASE_URL = "https://api.anthropic.com/v1/messages"
 
+INSPIRATION_SAMPLES = [
+    "反差开局：主角在最底层被当众羞辱/背锅，下一秒拿出“隐藏底牌”反杀，立刻确立爽点基调与主线对手。",
+    "悬疑钩子开局：第1章先给一个离奇事件/证据碎片（录音、尸检、账本、密函），主角被迫入局，结尾抛出更大的幕后名字。",
+    "黄金三章节奏：1章立人设+给钩子；2章给第一个硬冲突与小胜；3章给第一次反转与阶段性打脸，结尾必须爆点。",
+    "爽点链条：每章至少一个“推进+冲突+小反转”，每3-5章一个“大反转/大爽点”，确保升级路径清晰（个人→势力→体系）。",
+    "人物关系拉扯：主角与关键人物（对手/盟友/情感线）形成互相牵制与互相利用的关系网，既有利益绑定也有背刺空间。",
+    "热点元素融合：围绕类型常见高热题材做“现实细节+强冲突”包装（扫黑/反腐/商战/豪门/破案/权谋等），避免空泛设定堆砌。",
+]
+
 def build_system_instruction():
     return (
-        "你是资深网络小说策划编辑，擅长打造强爽点节奏的长篇网文。"
-        "你的任务是按要求输出完整的中文小说大纲，语言简洁有力。"
-        "输出要求：\n"
+        "你是资深网络小说策划编辑，擅长打造强爽点、强钩子、强悬念的长篇网文。"
+        "你的任务是按要求输出完整的中文小说大纲，语言简洁有力、可直接用于写作。"
+        "输出要求（必须按顺序输出，标题可用“：”）：\n"
         "1) 作品名\n"
         "2) 类型\n"
-        "3) 核心人设（主角、对手、导师、盟友）\n"
-        "4) 世界观与设定（时代、地域、权力结构、资源）\n"
-        "5) 爽点清单（10条以上，明确冲突与反转）\n"
-        "6) 三幕结构梗概（每幕5-8个关键节点）\n"
-        "7) 章节大纲（至少24章；每章输出一个章节块：### 第N章：标题；并严格包含三行：**内容**：... **【悬疑点】**：... **【爽点】**：...；爽点允许为“暂无”）\n"
-        "8) 可扩展支线与后续走向\n"
-        "风格：节奏快、冲突密集、反转频繁、爽点直给。\n"
+        "3) 一句话卖点（高概念+主角目标+核心冲突）\n"
+        "4) 核心人设（主角、对手、导师、盟友：身份/欲望/弱点/成长线）\n"
+        "5) 世界观与设定（时代、地域、权力结构、关键资源、规则与禁忌、典型场景）\n"
+        "6) 爽点清单（不少于12条，每条一句，必须可落地到剧情节点）\n"
+        "7) 三幕结构梗概（ACT1/ACT2/ACT3，每幕5-8个关键节点，明确阶段性目标与失败代价）\n"
+        "8) 黄金三章设计（第1-3章：每章给“开篇画面/冲突推进/钩子问题/悬念升级/爽点或反转/结尾爆点”，要能直接照着写）\n"
+        "9) 章节大纲（至少24章；每章输出一个章节块：### 第N章：标题；并严格包含三行：\n"
+        "   **内容**：2-4句，必须写清本章目标/冲突/转折/推进\n"
+        "   **【悬疑点】**：一句，必须是钩子式问题或未解信息\n"
+        "   **【爽点】**：一句，必须是具体爽点（打脸/反杀/升级/获利/揭底）；开局悲剧铺垫允许“暂无”）\n"
+        "10) 读者钩子与悬念设计（short_term/mid_term/long_term，每个不少于4条，形成悬念链）\n"
+        "11) 可扩展支线与后续走向（支线/后续走向，各不少于6条）\n"
+        "写法要求：\n"
+        "- 开篇黄金三章必须“快进场、快立人设、快冲突、快爆点”，第3章结尾必须强钩子。\n"
+        "- 章节推进要“螺旋式上升”：冲突规模（个人→势力→体系）、性质（生存→利益→信仰）与爽点类型不断升级，避免重复打脸套路。\n"
+        "- 禁止解释流程或输出写作建议，直接输出大纲内容。\n"
         "重要提示：章节标题中请勿包含“第X章”前缀，仅输出纯标题，例如“风起云涌”而不是“第1章 风起云涌”。"
     )
 
-def build_constraints(novel_type: str, theme: str, channel: str | None = None) -> str:
+def build_constraints(novel_type: str, theme: str, channel: str | None = None, inspiration: str = "") -> str:
     t = (novel_type or "").strip()
     allow_fantasy = any(k in t for k in ["仙侠", "玄幻", "奇幻"])
     allow_scifi = any(k in t for k in ["科幻"])
     allow_apocalypse = any(k in t for k in ["末世"])
     allow_supernatural = any(k in t for k in ["灵异", "悬疑灵异", "恐怖"])
 
+    insp = (inspiration or "").strip()
     ch = (channel or "").strip()
     base = (
         (f"频道：{ch}\n" if ch else "")
         + f"类型：{novel_type}\n"
         + f"主题/设定：{theme}\n"
+        + (f"写作灵感：{insp}\n" if insp else "")
         + "必须严格对齐类型与主题，使用中文。\n"
     )
     if ch == "男频":
@@ -80,11 +100,13 @@ def build_constraints(novel_type: str, theme: str, channel: str | None = None) -
         return base + "允许灵异/恐怖氛围与超自然疑团，但需有清晰规则与可解释线索链。\n"
     return base + "本土现实语境优先，避免引入仙侠/修真/法术/赛博/星际/外星/末日/机甲等非现实元素。\n"
 
-def build_user_prompt(novel_type: str, theme: str) -> str:
+def build_user_prompt(novel_type: str, theme: str, inspiration: str = "") -> str:
+    insp = (inspiration or "").strip()
     return (
         f"类型：{novel_type}\n"
         f"主题/设定：{theme}\n"
-        "请严格按系统要求生成结构化中文输出，不要解释流程。"
+        + (f"写作灵感：{insp}\n" if insp else "")
+        + "请严格按系统要求生成结构化中文输出，不要解释流程。"
     )
 
 def _gen_salt(length: int = 16) -> str:
@@ -1333,6 +1355,9 @@ class OutlineApp:
         
         self.type_var = tk.StringVar(value="官场逆袭")
         self.theme_var = tk.StringVar(value="草根逆袭官场，卷入扫黑风暴，凭智谋破局")
+        self.inspiration_sample_var = tk.StringVar(value=(INSPIRATION_SAMPLES[0] if INSPIRATION_SAMPLES else ""))
+        self.inspiration_context = ""
+        self.story_bible = {}
         self.chapters_var = tk.IntVar(value=100)
         self.expand_to_var = tk.IntVar(value=100)
         self.volumes_var = tk.IntVar(value=5)
@@ -1515,6 +1540,31 @@ class OutlineApp:
         ttk.Label(row1, text="章节数：").pack(side=tk.LEFT, padx=(18, 0))
         self.chapters_spin = ttk.Spinbox(row1, from_=1, to=1000, textvariable=self.chapters_var, width=6)
         self.chapters_spin.pack(side=tk.LEFT)
+
+        row_insp = ttk.LabelFrame(main, text="写作灵感（可选）", padding=(10, 6))
+        row_insp.pack(fill=tk.X, pady=(0, 8))
+        insp_top = ttk.Frame(row_insp)
+        insp_top.pack(fill=tk.X)
+        ttk.Label(insp_top, text="灵感样本：").pack(side=tk.LEFT)
+        self.inspiration_combo = ttk.Combobox(
+            insp_top,
+            textvariable=self.inspiration_sample_var,
+            values=INSPIRATION_SAMPLES,
+            state="readonly",
+            width=86,
+        )
+        self.inspiration_combo.pack(side=tk.LEFT, padx=6, fill=tk.X, expand=True)
+        ttk.Button(insp_top, text="套用", command=self.on_apply_inspiration_sample).pack(side=tk.LEFT, padx=6)
+        ttk.Button(insp_top, text="清空", command=self.on_clear_inspiration).pack(side=tk.LEFT)
+
+        ttk.Label(row_insp, text="自定义输入（人物设想/开篇画面/钩子悬念/爽点清单/参考桥段等）：").pack(anchor="w", pady=(6, 2))
+        insp_wrap = ttk.Frame(row_insp)
+        insp_wrap.pack(fill=tk.X, expand=True)
+        self.inspiration_text = tk.Text(insp_wrap, height=4, wrap=tk.WORD, font=("Consolas", 10))
+        self.inspiration_text.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        insp_scroll = ttk.Scrollbar(insp_wrap, orient=tk.VERTICAL, command=self.inspiration_text.yview)
+        insp_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.inspiration_text.configure(yscrollcommand=insp_scroll.set)
 
         row_user = ttk.LabelFrame(main, text="个人中心", padding=(10, 5))
         row_user.pack(fill=tk.X, pady=(0, 8))
@@ -2824,12 +2874,55 @@ class OutlineApp:
         if suggestions:
             self.theme_var.set(suggestions[0])
 
+    def _sync_inspiration_context(self) -> str:
+        text = ""
+        try:
+            if hasattr(self, "inspiration_text"):
+                text = (self.inspiration_text.get("1.0", tk.END) or "").strip()
+        except Exception:
+            text = ""
+        if not text:
+            try:
+                text = (self.inspiration_sample_var.get() or "").strip()
+            except Exception:
+                text = ""
+        self.inspiration_context = text
+        return text
+
+    def on_apply_inspiration_sample(self):
+        sample = ""
+        try:
+            sample = (self.inspiration_sample_var.get() or "").strip()
+        except Exception:
+            sample = ""
+        if (not sample) or (not hasattr(self, "inspiration_text")):
+            return
+        try:
+            self.inspiration_text.delete("1.0", tk.END)
+            self.inspiration_text.insert(tk.END, sample)
+        except Exception:
+            pass
+        self._sync_inspiration_context()
+        self.story_bible = {}
+
+    def on_clear_inspiration(self):
+        if not hasattr(self, "inspiration_text"):
+            return
+        try:
+            self.inspiration_text.delete("1.0", tk.END)
+        except Exception:
+            pass
+        self._sync_inspiration_context()
+
     def on_generate(self):
         if not self._require_login_and_token():
             return
         if not self._consume_token(1):
             messagebox.showerror("次数卡不足", "次数卡不足，无法继续生成。")
             return
+
+        self._sync_inspiration_context()
+        self.story_bible = {}
 
         provider = "Gemini"
         api_key = self._load_api_key("Gemini")
@@ -2840,6 +2933,7 @@ class OutlineApp:
             
         novel_type = self.type_var.get().strip()
         theme = self.theme_var.get().strip()
+        self._merge_story_bible({"genre": novel_type, "theme": theme, "inspiration": (self.inspiration_context or "")})
         model = (self.model_var.get() or DEFAULT_GEMINI_MODEL).strip()
         if not model:
             model = DEFAULT_GEMINI_MODEL
@@ -2890,6 +2984,8 @@ class OutlineApp:
             messagebox.showerror("次数卡不足", "次数卡不足，无法继续生成。")
             return
 
+        self._sync_inspiration_context()
+
         provider = "Gemini"
         api_key = self._load_api_key("Gemini")
         if not api_key:
@@ -2910,6 +3006,8 @@ class OutlineApp:
 
         novel_type = self.type_var.get().strip()
         theme = self.theme_var.get().strip()
+        self._merge_story_bible(self._extract_story_bible_from_text(base_outline))
+        self._merge_story_bible({"genre": novel_type, "theme": theme, "inspiration": (self.inspiration_context or "")})
         model = (self.model_var.get() or DEFAULT_GEMINI_MODEL).strip()
         if not model:
             model = DEFAULT_GEMINI_MODEL
@@ -2971,12 +3069,17 @@ class OutlineApp:
         self.output.delete("1.0", tk.END)
         self.output.insert(tk.END, text + "\n")
         self.full_outline_context = text
+        try:
+            self._merge_story_bible(self._extract_story_bible_from_text(text))
+        except Exception:
+            pass
         self.last_outline_path = path
         self._sync_chapters_from_text(text, show_message=True)
 
     def on_apply_feedback_to_chapters(self):
         if not self._require_login_and_token():
             return
+        self._sync_inspiration_context()
         provider = "Gemini"
         api_key = self._load_api_key("Gemini")
         if not api_key:
@@ -3182,6 +3285,7 @@ class OutlineApp:
     def on_check_and_fill_outline(self):
         if not self._require_login_and_token():
             return
+        self._sync_inspiration_context()
         provider = "Gemini"
         api_key = self._load_api_key("Gemini")
         if not api_key:
@@ -3238,6 +3342,7 @@ class OutlineApp:
     def on_check_outline_suggestions(self):
         if not self._require_login_and_token():
             return
+        self._sync_inspiration_context()
         provider = "Gemini"
         api_key = self._load_api_key("Gemini")
         if not api_key:
@@ -3290,7 +3395,7 @@ class OutlineApp:
         ).start()
 
     def _generate_json_via_provider(self, provider, api_key, model_name, novel_type, theme, contents_text, user_prompt, schema):
-        system_text = build_system_instruction() + "\n" + build_constraints(novel_type, theme, self.channel_var.get()) + "\n你正在对已有大纲做完整性校验与补全。必须承接已有内容，不得推翻重写；只补全缺失项。严格按要求输出。"
+        system_text = build_system_instruction() + "\n" + build_constraints(novel_type, theme, self.channel_var.get(), inspiration=(self.inspiration_context or "")) + "\n你正在对已有大纲做完整性校验与补全。必须承接已有内容，不得推翻重写；只补全缺失项。严格按要求输出。"
 
         if provider in ("Doubao", "Claude"):
             base_url = self._load_doubao_base_url() if provider == "Doubao" else ""
@@ -3949,7 +4054,7 @@ class OutlineApp:
             self._setup_logger(novel_type, theme, chapters)
             self.start_time = time.time()
 
-            constraints_text = build_constraints(novel_type, theme, self.channel_var.get())
+            constraints_text = build_constraints(novel_type, theme, self.channel_var.get(), inspiration=(self.inspiration_context or ""))
             self.last_constraints_text = constraints_text
 
             optimized_instruction = (self.last_optimized_instruction or "").strip() or build_system_instruction()
@@ -3999,7 +4104,18 @@ class OutlineApp:
                     optimized_instruction = self._optimize_prompt(client, models, novel_type, theme, config)
                 self.last_optimized_instruction = (optimized_instruction or "").strip()
 
-            base_outline_text = (base_outline or "").strip()
+            raw_outline_text = (base_outline or "").strip()
+            try:
+                self._merge_story_bible(self._extract_story_bible_from_text(raw_outline_text))
+            except Exception:
+                pass
+            bible_text = ""
+            try:
+                bible_text = self._get_story_bible_text(raw_outline_text)
+            except Exception:
+                bible_text = ""
+
+            base_outline_text = raw_outline_text
             if len(base_outline_text) > 60000:
                 base_outline_text = base_outline_text[-60000:]
 
@@ -4015,10 +4131,11 @@ class OutlineApp:
                 "   **【爽点】**：...（开局悲剧铺垫允许“暂无”）\n"
                 "4. 标题不要额外包含“第N章”字样（章节块前缀已经包含）。\n"
                 "5. 必须承接原大纲的逻辑链条；除非修改意见要求，否则不要重置为全新故事。\n"
-                "\n【当前大纲】\n"
-                f"{base_outline_text}\n"
-                "\n【修改意见】\n"
-                f"{feedback.strip()}\n"
+                + (("\n" + bible_text + "\n") if bible_text else "")
+                + "\n【当前大纲】\n"
+                + f"{base_outline_text}\n"
+                + "\n【修改意见】\n"
+                + f"{feedback.strip()}\n"
             )
 
             if self.logger:
@@ -4108,7 +4225,7 @@ class OutlineApp:
             self.start_time = time.time()
             client = genai.Client(api_key=api_key)
             tools = []
-            constraints_text = build_constraints(novel_type, theme, self.channel_var.get()) + "\n" + (self.generation_variation or "")
+            constraints_text = build_constraints(novel_type, theme, self.channel_var.get(), inspiration=(self.inspiration_context or "")) + "\n" + (self.generation_variation or "")
             config = types.GenerateContentConfig(
                 system_instruction=[
                     types.Part.from_text(text=build_system_instruction()),
@@ -4196,6 +4313,10 @@ class OutlineApp:
                         f"重要指令：请基于以上已生成的内容继续创作，确保《{sec_title}》部分与前文的人物设定、世界观规则及剧情走向保持高度一致，严禁出现逻辑冲突。\n"
                     )
                     prompt_parts.insert(0, types.Part.from_text(text=context_injection)) # 将上下文放在 prompt 最前面
+
+                bible_text = self._get_story_bible_text(accumulated)
+                if bible_text:
+                    prompt_parts.insert(0, types.Part.from_text(text=bible_text + "\n"))
 
                 # 如果是章节大纲（非第一批），额外注入剧情梗概作为更聚焦的上下文
                 if sec_title.startswith("章节大纲") and self.all_chapter_summaries:
@@ -4345,6 +4466,10 @@ class OutlineApp:
                     text_out_final = self._sanitize_text(text_out or "")
 
                 if text_out_final:
+                    try:
+                        self._update_story_bible_from_section(sec_title, text_out_final)
+                    except Exception:
+                        pass
                     self.root.after(0, self._append_text, text_out_final)
                     accumulated += "\n\n### " + str(i) + ". " + sec_title + "\n" + text_out_final
                     self.completed_sections += 1
@@ -4429,6 +4554,130 @@ class OutlineApp:
             if t:
                 return t
         return ""
+
+    def _extract_story_bible_from_text(self, content: str) -> dict:
+        text = (content or "").replace("\r\n", "\n").replace("\r", "\n")
+        out = {}
+
+        title = self._extract_outline_title(text)
+        if title:
+            out["title"] = title
+
+        m_genre = re.search(r"(?m)^\s*(?:\d+\s*[\)\.、]\s*)?类型\s*[:：]\s*(.{1,80})\s*$", text)
+        if m_genre:
+            out["genre"] = (m_genre.group(1) or "").strip()
+        else:
+            m_genre2 = re.search(r'(?i)"genre"\s*:\s*"([^"\n]{1,80})"', text)
+            if m_genre2:
+                out["genre"] = (m_genre2.group(1) or "").strip()
+
+        role_map = {
+            "protagonist_name": ["主角", "男主", "女主", "主人公"],
+            "rival_name": ["对手", "反派", "反派boss", "反派BOSS", "宿敌"],
+            "mentor_name": ["导师", "师父", "引路人"],
+            "ally_name": ["盟友", "伙伴", "同伴"],
+        }
+
+        def set_role(role_label: str, name: str):
+            rl = (role_label or "").strip()
+            nm = (name or "").strip()
+            if not rl or not nm:
+                return
+            for key, words in role_map.items():
+                if any(w in rl for w in words):
+                    out[key] = nm
+                    return
+
+        for m in re.finditer(r"(?ms)角色\s*[:：]\s*([^\n]{1,20})\s*\n\s*姓名\s*[:：]\s*([^\n]{1,40})", text):
+            set_role(m.group(1), m.group(2))
+
+        for m in re.finditer(r'(?s)"role"\s*:\s*"([^"\n]{1,30})".{0,120}?"name"\s*:\s*"([^"\n]{1,40})"', text):
+            set_role(m.group(1), m.group(2))
+
+        for key, label in [
+            ("era", "时代"),
+            ("region", "地域"),
+            ("power_structure", "权力结构"),
+            ("resources", "关键资源"),
+            ("rules", "规则与禁忌"),
+        ]:
+            mm = re.search(rf"(?m)^\s*{re.escape(label)}\s*[:：]\s*(.{1,200})\s*$", text)
+            if mm:
+                out[key] = (mm.group(1) or "").strip()
+
+        m_city = re.search(r"(?m)^\s*-\s*城市：\s*(.{1,80})\s*$", text)
+        if m_city:
+            out["city"] = (m_city.group(1) or "").strip()
+        m_org = re.search(r"(?m)^\s*-\s*反派势力：\s*(.{1,120})\s*$", text)
+        if m_org:
+            out["antagonist_org"] = (m_org.group(1) or "").strip()
+        m_clue = re.search(r"(?m)^\s*-\s*关键线索：\s*(.{1,120})\s*$", text)
+        if m_clue:
+            out["key_clue"] = (m_clue.group(1) or "").strip()
+
+        return out
+
+    def _merge_story_bible(self, data: dict):
+        if not isinstance(data, dict):
+            return
+        if not hasattr(self, "story_bible") or not isinstance(self.story_bible, dict):
+            self.story_bible = {}
+        for k, v in data.items():
+            if not k:
+                continue
+            val = (str(v) if v is not None else "").strip()
+            if not val:
+                continue
+            if k not in self.story_bible:
+                self.story_bible[k] = val
+
+    def _update_story_bible_from_section(self, sec_title: str, text: str):
+        self._merge_story_bible(self._extract_story_bible_from_text(text))
+        t = (sec_title or "").strip()
+        if t == "作品名与类型":
+            self._merge_story_bible(self._extract_story_bible_from_text(text))
+        elif t == "核心人设":
+            self._merge_story_bible(self._extract_story_bible_from_text(text))
+        elif t == "世界观与设定":
+            self._merge_story_bible(self._extract_story_bible_from_text(text))
+
+    def _get_story_bible_text(self, fallback_text: str = "") -> str:
+        if not hasattr(self, "story_bible") or not isinstance(self.story_bible, dict):
+            self.story_bible = {}
+        if (not self.story_bible) and fallback_text:
+            self._merge_story_bible(self._extract_story_bible_from_text(fallback_text))
+
+        keys_order = [
+            ("title", "作品名"),
+            ("genre", "类型"),
+            ("protagonist_name", "主角"),
+            ("rival_name", "对手/反派"),
+            ("mentor_name", "导师"),
+            ("ally_name", "盟友"),
+            ("city", "城市"),
+            ("antagonist_org", "反派势力"),
+            ("key_clue", "关键线索"),
+            ("era", "时代"),
+            ("region", "地域"),
+            ("power_structure", "权力结构"),
+            ("resources", "关键资源"),
+            ("rules", "规则与禁忌"),
+        ]
+        lines = []
+        for k, label in keys_order:
+            v = (self.story_bible.get(k) or "").strip()
+            if not v:
+                continue
+            if len(v) > 180:
+                v = v[:180] + "…"
+            lines.append(f"{label}：{v}")
+
+        if not lines:
+            return ""
+
+        header = "【固定设定（必须保持一致，不得改名/改身份/改核心线索）】"
+        hard = "硬性要求：所有后续输出必须沿用以上命名与设定；不得生成第二套“主角/对手/导师/盟友”人名；如必须新增角色，需与上述主角团产生清晰关系且不得顶替主角团。"
+        return header + "\n" + "\n".join(lines[:14]) + "\n" + hard
 
     def _parse_retry_delay(self, msg: str) -> int:
         m = re.search(r"retryDelay['\"]?:\s*'?([0-9]+)s", msg)
@@ -4587,7 +4836,12 @@ class OutlineApp:
         return ""
 
     def _build_sections(self, novel_type: str, theme: str, chapters: int, volumes: int, provider: str = ""):
-        base = f"类型：{novel_type}\n主题/设定：{theme}\n严格遵循类型与主题，不得偏离或引入不相关元素。"
+        insp = (getattr(self, "inspiration_context", "") or "").strip()
+        base = (
+            f"类型：{novel_type}\n主题/设定：{theme}\n"
+            + (f"写作灵感：{insp}\n" if insp else "")
+            + "严格遵循类型与主题，不得偏离或引入不相关元素。"
+        )
         variation = (getattr(self, "generation_variation", "") or "").strip()
         if variation:
             base = base + "\n" + variation
@@ -4639,6 +4893,22 @@ class OutlineApp:
                 "act1": {"type": "ARRAY", "items": {"type": "STRING"}},
                 "act2": {"type": "ARRAY", "items": {"type": "STRING"}},
                 "act3": {"type": "ARRAY", "items": {"type": "STRING"}},
+            },
+        }
+        sec_gold_schema = {
+            "type": "ARRAY",
+            "items": {
+                "type": "OBJECT",
+                "required": ["chapter", "opening_image", "conflict", "hook_question", "suspense_escalation", "payoff_or_twist", "ending_boom"],
+                "properties": {
+                    "chapter": {"type": "INTEGER"},
+                    "opening_image": {"type": "STRING"},
+                    "conflict": {"type": "STRING"},
+                    "hook_question": {"type": "STRING"},
+                    "suspense_escalation": {"type": "STRING"},
+                    "payoff_or_twist": {"type": "STRING"},
+                    "ending_boom": {"type": "STRING"},
+                },
             },
         }
         sec6_schema = {
@@ -4785,14 +5055,27 @@ class OutlineApp:
         sec3 = ("世界观与设定", base + "\n请只输出 JSON，包含 era、region、power_structure、resources、rules、scenes。", sec3_schema)
         sec4 = ("爽点清单", base + "\n请只输出 JSON 数组，列出不少于12条爽点，每条一句。", sec4_schema)
         sec5 = ("三幕结构梗概", base + "\n请只输出 JSON，包含 act1、act2、act3 三个数组，每幕不少于5项。", sec5_schema)
+        sec_gold = (
+            "黄金三章设计",
+            base
+            + "\n任务：输出黄金三章（第1-3章）可直接照写的设计。\n"
+            + "要求：请只输出 JSON 数组（长度必须为3），每项包含：chapter(整数1-3)、opening_image(开篇画面)、conflict(冲突推进)、hook_question(钩子问题)、suspense_escalation(悬念升级)、payoff_or_twist(爽点或反转)、ending_boom(结尾爆点)。\n"
+            + "必须做到：第1章抛核心悬念；第2章建立主角动机并给小胜；第3章确立初期反派并给强反转，结尾强钩子。\n",
+            sec_gold_schema,
+        )
         # sec6 已移除，原“主要角色档案”
         sec8 = ("读者钩子与悬念设计", base + "\n请只输出 JSON，包含 short_term、mid_term、long_term 三个数组。", sec8_schema)
         sec9 = ("可扩展支线与后续走向", base + "\n请只输出 JSON，包含 side_plots 与 future_arcs 两个数组。", sec9_schema)
         
-        return [sec1, sec2, sec3, sec4, sec5] + chapter_sections + [sec8, sec9]
+        return [sec1, sec2, sec3, sec4, sec5, sec_gold] + chapter_sections + [sec8, sec9]
 
     def _build_sections_text(self, novel_type: str, theme: str, chapters: int, volumes: int, provider: str = ""):
-        base = f"类型：{novel_type}\n主题/设定：{theme}\n严格遵循类型与主题，不得偏离或引入不相关元素。"
+        insp = (getattr(self, "inspiration_context", "") or "").strip()
+        base = (
+            f"类型：{novel_type}\n主题/设定：{theme}\n"
+            + (f"写作灵感：{insp}\n" if insp else "")
+            + "严格遵循类型与主题，不得偏离或引入不相关元素。"
+        )
         variation = (getattr(self, "generation_variation", "") or "").strip()
         if variation:
             base = base + "\n" + variation
@@ -4821,6 +5104,15 @@ class OutlineApp:
             "三幕结构梗概",
             base
             + "\n请输出纯文本（不要 JSON），使用如下格式：\nACT1：\n- ...\nACT2：\n- ...\nACT3：\n- ...\n每幕不少于5条。\n",
+        )
+        sec6 = (
+            "黄金三章设计",
+            base
+            + "\n请输出纯文本（不要 JSON），严格按如下格式输出，并确保每个字段都有内容：\n"
+            + "第1章：\n开篇画面：...\n冲突推进：...\n钩子问题：...\n悬念升级：...\n爽点或反转：...\n结尾爆点：...\n\n"
+            + "第2章：\n开篇画面：...\n冲突推进：...\n钩子问题：...\n悬念升级：...\n爽点或反转：...\n结尾爆点：...\n\n"
+            + "第3章：\n开篇画面：...\n冲突推进：...\n钩子问题：...\n悬念升级：...\n爽点或反转：...\n结尾爆点：...\n\n"
+            + "硬性要求：第1章抛核心悬念；第2章建立主角动机并给小胜；第3章确立初期反派并给强反转，结尾强钩子。\n",
         )
 
         chapter_sections = []
@@ -4900,7 +5192,7 @@ class OutlineApp:
             + "\n请输出纯文本（不要 JSON），使用如下格式：\n支线：\n- ...\n后续走向：\n- ...\n",
         )
 
-        return [sec1, sec2, sec3, sec4, sec5] + chapter_sections + [sec8, sec9]
+        return [sec1, sec2, sec3, sec4, sec5, sec6] + chapter_sections + [sec8, sec9]
 
     def _ensure_list(self, data):
         """
@@ -5002,6 +5294,31 @@ class OutlineApp:
                             lines.extend([f"- {s}" for s in arr])
                     return "\n".join(lines)
                 return str(data)
+
+            if title == "黄金三章设计":
+                items = self._ensure_list(data)
+                norm = []
+                for it in items:
+                    if isinstance(it, dict) and "chapter" in it:
+                        try:
+                            cn = int(it.get("chapter"))
+                        except Exception:
+                            continue
+                        if 1 <= cn <= 3:
+                            norm.append((cn, it))
+                norm.sort(key=lambda x: x[0])
+                out = []
+                for cn, it in norm:
+                    out.append(
+                        f"第{cn}章：\n"
+                        f"开篇画面：{(it.get('opening_image') or '').strip()}\n"
+                        f"冲突推进：{(it.get('conflict') or '').strip()}\n"
+                        f"钩子问题：{(it.get('hook_question') or '').strip()}\n"
+                        f"悬念升级：{(it.get('suspense_escalation') or '').strip()}\n"
+                        f"爽点或反转：{(it.get('payoff_or_twist') or '').strip()}\n"
+                        f"结尾爆点：{(it.get('ending_boom') or '').strip()}"
+                    )
+                return "\n\n".join([x for x in out if x]).strip()
 
             # --- 主要角色档案 ---
             if title == "主要角色档案":
@@ -5508,6 +5825,7 @@ class OutlineApp:
     def on_generate_novel(self):
         if not self._require_login_and_token():
             return
+        self._sync_inspiration_context()
         if not self.chapters_data:
             messagebox.showwarning("无大纲", "请先生成或解析小说大纲！")
             return
@@ -5565,11 +5883,13 @@ class OutlineApp:
             # 构建基础上下文
             novel_type = self.type_var.get()
             theme = self.theme_var.get()
+            inspiration = (getattr(self, "inspiration_context", "") or "").strip()
             # 用户要求发送完整大纲，Gemini模型支持长上下文，取消截断
             context_base = (
                 f"小说类型：{novel_type}\n"
-                f"主题：{theme}\n"
-                f"完整大纲参考：\n{self.full_outline_context}" 
+                + f"主题：{theme}\n"
+                + (f"写作灵感：{inspiration}\n" if inspiration else "")
+                + f"完整大纲参考：\n{self.full_outline_context}"
             )
             
             last_chapter_text = "" # 用于存储上一章正文，保持连贯性
@@ -5617,7 +5937,7 @@ class OutlineApp:
                 )
                 
                 if provider in ("Doubao", "Claude"):
-                    system_inst = build_system_instruction() + "\n" + build_constraints(novel_type, theme, self.channel_var.get())
+                    system_inst = build_system_instruction() + "\n" + build_constraints(novel_type, theme, self.channel_var.get(), inspiration=(self.inspiration_context or ""))
                     if provider == "Claude":
                         content_out = self._call_claude(api_key, model_name, system_inst, prompt, temperature=0.8, max_tokens=8192)
                     else:
@@ -5682,7 +6002,7 @@ class OutlineApp:
             self._setup_logger(novel_type, theme, chapters)
             self.start_time = time.time()
             
-            constraints_text = build_constraints(novel_type, theme, self.channel_var.get()) + "\n" + (self.generation_variation or "")
+            constraints_text = build_constraints(novel_type, theme, self.channel_var.get(), inspiration=(self.inspiration_context or "")) + "\n" + (self.generation_variation or "")
             system_prompt = build_system_instruction() + "\n" + constraints_text
             base_url = self._load_doubao_base_url()
             
@@ -5939,7 +6259,7 @@ class OutlineApp:
             self._setup_logger(novel_type, theme, chapters)
             self.start_time = time.time()
 
-            constraints_text = build_constraints(novel_type, theme, self.channel_var.get()) + "\n" + (self.generation_variation or "")
+            constraints_text = build_constraints(novel_type, theme, self.channel_var.get(), inspiration=(self.inspiration_context or "")) + "\n" + (self.generation_variation or "")
             system_prompt = build_system_instruction() + "\n" + constraints_text
 
             self.root.after(0, self._append_text, f"正在使用 {provider} ({model_name}) 优化指令...\n")
@@ -6271,7 +6591,7 @@ class OutlineApp:
         system_text = (
             build_system_instruction()
             + "\n"
-            + build_constraints(novel_type, theme, self.channel_var.get())
+            + build_constraints(novel_type, theme, self.channel_var.get(), inspiration=(self.inspiration_context or ""))
             + "\n你正在根据修改意见对既有大纲做定向修订。必须承接原大纲设定与线索链，只改动被要求修改的章节，不要重写整本。严格输出 JSON。"
         )
 
@@ -6359,7 +6679,7 @@ class OutlineApp:
             "你是资深网文主编与结构编辑，擅长大纲体检与可执行修改建议。"
             "你的任务是审阅用户提供的小说大纲，指出结构/逻辑/爽点节奏/伏笔钩子/人物动机的关键问题，并给出可以直接执行的修改意见。"
             "\n"
-            + build_constraints(novel_type, theme, self.channel_var.get())
+            + build_constraints(novel_type, theme, self.channel_var.get(), inspiration=(self.inspiration_context or ""))
             + "\n必须承接原大纲设定与命名；除非建议明确要求，否则不要推翻重写。严格输出 JSON。"
         )
 
