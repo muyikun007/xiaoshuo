@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
     const body = await request.json()
-    const { type, theme } = body
+    const { type, theme, writingIdea, professionalPrompt } = body
 
     if (!type || !theme) {
       return new Response(JSON.stringify({ error: '请填写类型和主题' }), {
@@ -25,8 +25,13 @@ export async function POST(request: NextRequest) {
         try {
           const aiService = getAIService('gemini')
 
-          // 直接生成大纲（非流式）
-          const outline = await aiService.generateOutline(type, theme)
+          // 生成大纲，传入写作思路和专业提示词
+          const outline = await aiService.generateOutline(
+            type,
+            theme,
+            writingIdea,
+            professionalPrompt
+          )
 
           // 模拟流式输出以提供更好的用户体验
           const chunks = outline.split('\n')

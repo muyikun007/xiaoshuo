@@ -17,8 +17,44 @@ export default function GenerateOutlinePage() {
   const router = useRouter()
   const [type, setType] = useState('')
   const [theme, setTheme] = useState('')
+  const [writingIdea, setWritingIdea] = useState('')
+  const [professionalPrompt, setProfessionalPrompt] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isGeneratingPrompt, setIsGeneratingPrompt] = useState(false)
   const [outline, setOutline] = useState('')
+
+  const handleGenerateProfessionalPrompt = async () => {
+    if (!type || !theme) {
+      toast.error('请先选择类型并输入主题')
+      return
+    }
+
+    setIsGeneratingPrompt(true)
+    setProfessionalPrompt('')
+
+    try {
+      const response = await fetch('/api/generate/professional-prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ type, theme, writingIdea }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || '生成失败')
+      }
+
+      const data = await response.json()
+      setProfessionalPrompt(data.prompt)
+      toast.success('专业提示词生成完成！')
+    } catch (error: any) {
+      toast.error(error.message || '生成失败')
+    } finally {
+      setIsGeneratingPrompt(false)
+    }
+  }
 
   const handleGenerate = async () => {
     if (!type || !theme) {
@@ -35,7 +71,12 @@ export default function GenerateOutlinePage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ type, theme }),
+        body: JSON.stringify({
+          type,
+          theme,
+          writingIdea,
+          professionalPrompt
+        }),
       })
 
       if (!response.ok) {
@@ -150,6 +191,58 @@ export default function GenerateOutlinePage() {
                   required
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  写作思路
+                </label>
+                <textarea
+                  value={writingIdea}
+                  onChange={(e) => setWritingIdea(e.target.value)}
+                  placeholder="请输入小说创意、人物设想、开篇画面、钩子悬念、爽点清单、参考桥段等（选填）&#10;例如：开篇主角被陷害入狱，出狱后掌握关键证据，逐步反击；重点爽点：打脸前上司、揭露腐败、权谋博弈"
+                  className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    onClick={handleGenerateProfessionalPrompt}
+                    disabled={isGeneratingPrompt || !type || !theme}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {isGeneratingPrompt ? '生成中...' : '🎨 生成专业提示词'}
+                  </Button>
+                  <Button
+                    onClick={() => setWritingIdea('')}
+                    variant="outline"
+                    size="sm"
+                  >
+                    清空
+                  </Button>
+                </div>
+              </div>
+
+              {professionalPrompt && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    专业提示词（可编辑）
+                  </label>
+                  <textarea
+                    value={professionalPrompt}
+                    onChange={(e) => setProfessionalPrompt(e.target.value)}
+                    placeholder="根据写作思路生成的专业提示词，您可以手动修改"
+                    className="w-full h-40 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50"
+                  />
+                  <div className="mt-2">
+                    <Button
+                      onClick={() => setProfessionalPrompt('')}
+                      variant="outline"
+                      size="sm"
+                    >
+                      清空
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <Button
