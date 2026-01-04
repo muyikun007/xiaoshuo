@@ -1357,6 +1357,8 @@ class OutlineApp:
         self.theme_var = tk.StringVar(value="草根逆袭官场，卷入扫黑风暴，凭智谋破局")
         self.inspiration_sample_var = tk.StringVar(value=(INSPIRATION_SAMPLES[0] if INSPIRATION_SAMPLES else ""))
         self.inspiration_context = ""
+        self.writing_idea = ""  # 写作思路
+        self.professional_prompt = ""  # 专业提示词
         self.story_bible = {}
         self.chapters_var = tk.IntVar(value=100)
         self.expand_to_var = tk.IntVar(value=100)
@@ -1541,30 +1543,39 @@ class OutlineApp:
         self.chapters_spin = ttk.Spinbox(row1, from_=1, to=1000, textvariable=self.chapters_var, width=6)
         self.chapters_spin.pack(side=tk.LEFT)
 
-        row_insp = ttk.LabelFrame(main, text="写作灵感（可选）", padding=(10, 6))
-        row_insp.pack(fill=tk.X, pady=(0, 8))
-        insp_top = ttk.Frame(row_insp)
-        insp_top.pack(fill=tk.X)
-        ttk.Label(insp_top, text="灵感样本：").pack(side=tk.LEFT)
-        self.inspiration_combo = ttk.Combobox(
-            insp_top,
-            textvariable=self.inspiration_sample_var,
-            values=INSPIRATION_SAMPLES,
-            state="readonly",
-            width=86,
-        )
-        self.inspiration_combo.pack(side=tk.LEFT, padx=6, fill=tk.X, expand=True)
-        ttk.Button(insp_top, text="套用", command=self.on_apply_inspiration_sample).pack(side=tk.LEFT, padx=6)
-        ttk.Button(insp_top, text="清空", command=self.on_clear_inspiration).pack(side=tk.LEFT)
+        # --- 写作思路区域 ---
+        row_idea = ttk.LabelFrame(main, text="写作思路", padding=(10, 6))
+        row_idea.pack(fill=tk.X, pady=(0, 8))
+        ttk.Label(row_idea, text="请输入小说创意、人物设想、开篇画面、钩子悬念、爽点清单、参考桥段等：").pack(anchor="w", pady=(0, 2))
+        idea_wrap = ttk.Frame(row_idea)
+        idea_wrap.pack(fill=tk.X, expand=True)
+        self.writing_idea_text = tk.Text(idea_wrap, height=4, wrap=tk.WORD, font=("Consolas", 10))
+        self.writing_idea_text.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        idea_scroll = ttk.Scrollbar(idea_wrap, orient=tk.VERTICAL, command=self.writing_idea_text.yview)
+        idea_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.writing_idea_text.configure(yscrollcommand=idea_scroll.set)
 
-        ttk.Label(row_insp, text="自定义输入（人物设想/开篇画面/钩子悬念/爽点清单/参考桥段等）：").pack(anchor="w", pady=(6, 2))
-        insp_wrap = ttk.Frame(row_insp)
-        insp_wrap.pack(fill=tk.X, expand=True)
-        self.inspiration_text = tk.Text(insp_wrap, height=4, wrap=tk.WORD, font=("Consolas", 10))
-        self.inspiration_text.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        insp_scroll = ttk.Scrollbar(insp_wrap, orient=tk.VERTICAL, command=self.inspiration_text.yview)
-        insp_scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        self.inspiration_text.configure(yscrollcommand=insp_scroll.set)
+        idea_btn_row = ttk.Frame(row_idea)
+        idea_btn_row.pack(fill=tk.X, pady=(6, 0))
+        self.gen_prompt_btn = ttk.Button(idea_btn_row, text="生成专业提示词", command=self.on_generate_professional_prompt)
+        self.gen_prompt_btn.pack(side=tk.LEFT)
+        ttk.Button(idea_btn_row, text="清空", command=lambda: self.writing_idea_text.delete("1.0", tk.END)).pack(side=tk.LEFT, padx=8)
+
+        # --- 专业提示词区域 ---
+        row_prompt = ttk.LabelFrame(main, text="专业提示词（可编辑）", padding=(10, 6))
+        row_prompt.pack(fill=tk.X, pady=(0, 8))
+        ttk.Label(row_prompt, text="根据写作思路生成的专业提示词，可手动修改后用于生成大纲：").pack(anchor="w", pady=(0, 2))
+        prompt_wrap = ttk.Frame(row_prompt)
+        prompt_wrap.pack(fill=tk.X, expand=True)
+        self.professional_prompt_text = tk.Text(prompt_wrap, height=6, wrap=tk.WORD, font=("Consolas", 10))
+        self.professional_prompt_text.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        prompt_scroll = ttk.Scrollbar(prompt_wrap, orient=tk.VERTICAL, command=self.professional_prompt_text.yview)
+        prompt_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.professional_prompt_text.configure(yscrollcommand=prompt_scroll.set)
+
+        prompt_btn_row = ttk.Frame(row_prompt)
+        prompt_btn_row.pack(fill=tk.X, pady=(6, 0))
+        ttk.Button(prompt_btn_row, text="清空", command=lambda: self.professional_prompt_text.delete("1.0", tk.END)).pack(side=tk.LEFT)
 
         row_user = ttk.LabelFrame(main, text="个人中心", padding=(10, 5))
         row_user.pack(fill=tk.X, pady=(0, 8))
@@ -2875,9 +2886,12 @@ class OutlineApp:
             self.theme_var.set(suggestions[0])
 
     def _sync_inspiration_context(self) -> str:
+        """同步写作思路到inspiration_context（用于向后兼容）"""
         text = ""
         try:
-            if hasattr(self, "inspiration_text"):
+            if hasattr(self, "writing_idea_text"):
+                text = (self.writing_idea_text.get("1.0", tk.END) or "").strip()
+            elif hasattr(self, "inspiration_text"):
                 text = (self.inspiration_text.get("1.0", tk.END) or "").strip()
         except Exception:
             text = ""
@@ -2887,6 +2901,7 @@ class OutlineApp:
             except Exception:
                 text = ""
         self.inspiration_context = text
+        self.writing_idea = text  # 同时更新写作思路
         return text
 
     def on_apply_inspiration_sample(self):
@@ -2913,6 +2928,143 @@ class OutlineApp:
         except Exception:
             pass
         self._sync_inspiration_context()
+
+    def on_generate_professional_prompt(self):
+        """根据写作思路生成专业提示词"""
+        if not self._require_login_and_token():
+            return
+
+        # 获取写作思路
+        writing_idea = ""
+        try:
+            if hasattr(self, "writing_idea_text"):
+                writing_idea = (self.writing_idea_text.get("1.0", tk.END) or "").strip()
+        except Exception:
+            writing_idea = ""
+
+        # 保存写作思路
+        self.writing_idea = writing_idea
+
+        # 获取小说类型和主题
+        novel_type = self.type_var.get().strip()
+        theme = self.theme_var.get().strip()
+
+        if not novel_type or not theme:
+            messagebox.showwarning("提示", "请先填写小说类型和主题/设定")
+            return
+
+        # 禁用按钮
+        self.gen_prompt_btn.config(state=tk.DISABLED)
+        self.generate_btn.config(state=tk.DISABLED)
+
+        # 在输出框显示提示
+        self.output.delete("1.0", tk.END)
+        self.output.insert(tk.END, "正在生成专业提示词...\n\n")
+        self.status_var.set("正在生成专业提示词...")
+
+        # 启动线程生成
+        threading.Thread(
+            target=self._run_generate_professional_prompt,
+            args=(novel_type, theme, writing_idea),
+            daemon=True
+        ).start()
+
+    def _run_generate_professional_prompt(self, novel_type, theme, writing_idea):
+        """在后台线程中生成专业提示词"""
+        try:
+            # 加载API密钥
+            api_key = self._load_api_key("Gemini")
+            if not api_key:
+                self.root.after(0, messagebox.showerror, "错误", "未配置 API Key，请在 config.json 或环境变量 GEMINI_API_KEY 中设置")
+                return
+
+            # 创建Gemini客户端
+            client = genai.Client(api_key=api_key)
+
+            # 构建配置
+            model = (self.model_var.get() or DEFAULT_GEMINI_MODEL).strip()
+            if not model:
+                model = DEFAULT_GEMINI_MODEL
+
+            # 构建生成专业提示词的prompt
+            prompt = (
+                "你是资深网文主编，请根据以下信息，扩充并优化出一份专业的小说大纲生成提示词（System Instruction）。\n"
+                f"小说类型：{novel_type}\n"
+                f"核心主题：{theme}\n"
+            )
+
+            if writing_idea:
+                prompt += f"写作思路：{writing_idea}\n"
+
+            prompt += (
+                "\n要求：\n"
+                "1. 分析该类型的核心爽点、受众心理和市场热门趋势。\n"
+                "2. 细化对人设、世界观、冲突节奏的具体要求。\n"
+                "3. 强调输出风格（如节奏快、反转多、情绪拉扯强）。\n"
+                "4. 输出一段完整的、指令性强的 System Instruction，用于指导AI生成大纲。\n"
+                '5. 【重点】针对长篇结构，请设计"螺旋式上升"的剧情结构，避免重复套路。明确要求随着章节推进，冲突的规模（个人->势力->体系）、性质（生存->利益->信仰）和爽点类型必须不断演变升级，防止读者审美疲劳。\n'
+                '6. 章节标题生成时，请只输出标题文字，不要包含"第X章"字样。\n'
+                '7. 【章节强制格式】每一章的 summary 必须严格包含三行：**内容**：... **【悬疑点】**：... **【爽点】**：...（爽点允许为"暂无"，其余不得留空）。\n'
+                "8. 不要包含任何解释性文字，直接输出优化后的 Instruction 内容。"
+            )
+
+            # 构建约束
+            constraints_text = build_constraints(novel_type, theme, self.channel_var.get(), inspiration=writing_idea)
+
+            # 配置
+            config = types.GenerateContentConfig(
+                system_instruction=[
+                    types.Part.from_text(text=build_system_instruction()),
+                    types.Part.from_text(text=constraints_text),
+                ],
+                temperature=0.7,
+                max_output_tokens=4000,
+                top_p=0.95,
+            )
+
+            # 生成
+            models = [model]
+            if model != DEFAULT_GEMINI_MODEL:
+                models.append(DEFAULT_GEMINI_MODEL)
+            if "gemini-2.5-pro" not in models:
+                models.append("gemini-2.5-pro")
+            if "gemini-2.0-flash" not in models:
+                models.append("gemini-2.0-flash")
+
+            contents = [types.Content(role="user", parts=[types.Part.from_text(text=prompt)])]
+            professional_prompt = self._generate_with_fallback(client, models, contents, config)
+
+            if not professional_prompt:
+                professional_prompt = build_system_instruction()
+
+            professional_prompt = professional_prompt.strip()
+            self.professional_prompt = professional_prompt
+
+            # 在UI线程中更新文本框
+            self.root.after(0, self._update_professional_prompt_ui, professional_prompt)
+
+        except Exception as e:
+            error_msg = f"生成专业提示词时出错：{str(e)}"
+            self.root.after(0, messagebox.showerror, "错误", error_msg)
+            self.root.after(0, self.output.insert, tk.END, f"\n{error_msg}\n")
+        finally:
+            # 恢复按钮状态
+            self.root.after(0, self.gen_prompt_btn.config, {"state": tk.NORMAL})
+            self.root.after(0, self.generate_btn.config, {"state": tk.NORMAL})
+            self.root.after(0, self.status_var.set, "就绪")
+
+    def _update_professional_prompt_ui(self, professional_prompt):
+        """更新专业提示词UI"""
+        try:
+            if hasattr(self, "professional_prompt_text"):
+                self.professional_prompt_text.delete("1.0", tk.END)
+                self.professional_prompt_text.insert(tk.END, professional_prompt)
+
+            self.output.insert(tk.END, "\n专业提示词生成完成！\n\n")
+            self.output.insert(tk.END, professional_prompt)
+            self.output.insert(tk.END, '\n\n您可以在上方"专业提示词"框中编辑，然后点击"生成大纲"。\n')
+        except Exception as e:
+            messagebox.showerror("错误", f"更新UI时出错：{str(e)}")
 
     def on_generate(self):
         if not self._require_login_and_token():
@@ -4245,17 +4397,35 @@ class OutlineApp:
             if "gemini-2.0-flash" not in models:
                 models.append("gemini-2.0-flash")
             
-            # --- 第一步：生成优化后的提示词 ---
-            self.root.after(0, self._append_text, "正在根据类型与主题，智能优化大纲生成指令...\n")
-            if self.logger:
-                self.logger.info("开始生成优化提示词")
-            
-            optimized_instruction = self._optimize_prompt(client, models, novel_type, theme, config)
+            # --- 第一步：获取或生成优化后的提示词 ---
+            # 优先使用用户已生成的专业提示词
+            if hasattr(self, "professional_prompt_text"):
+                try:
+                    pre_generated_prompt = (self.professional_prompt_text.get("1.0", tk.END) or "").strip()
+                except Exception:
+                    pre_generated_prompt = ""
+            else:
+                pre_generated_prompt = (getattr(self, "professional_prompt", "") or "").strip()
+
+            if pre_generated_prompt:
+                # 使用已生成的专业提示词
+                optimized_instruction = pre_generated_prompt
+                self.root.after(0, self._append_text, "使用已生成的专业提示词...\n")
+                if self.logger:
+                    self.logger.info("使用已生成的专业提示词")
+            else:
+                # 如果没有预先生成，则自动生成
+                self.root.after(0, self._append_text, "正在根据类型与主题，智能优化大纲生成指令...\n")
+                if self.logger:
+                    self.logger.info("开始生成优化提示词")
+
+                optimized_instruction = self._optimize_prompt(client, models, novel_type, theme, config)
+
             self.last_optimized_instruction = (optimized_instruction or "").strip()
             self.last_constraints_text = (constraints_text or "").strip()
-            
+
             if self.logger:
-                self.logger.info(f"优化后的提示词:\n{optimized_instruction}")
+                self.logger.info(f"使用的提示词:\n{optimized_instruction}")
 
             self.root.after(
                 0,
