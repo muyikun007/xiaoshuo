@@ -145,11 +145,61 @@ export class AIService {
   }
 
   /**
+   * 生成专业提示词
+   */
+  async generateProfessionalPrompt(
+    novelType: string,
+    theme: string,
+    writingIdea: string
+  ): Promise<string> {
+    const prompt = `你是资深网文主编，请根据以下信息，扩充并优化出一份专业的小说大纲生成提示词（System Instruction）。
+
+小说类型：${novelType}
+核心主题：${theme}
+写作思路：${writingIdea || '无'}
+
+要求：
+1. 分析该类型的核心爽点、受众心理和市场热门趋势
+2. 细化对人设、世界观、冲突节奏的具体要求
+3. 强调输出风格（如节奏快、反转多、情绪拉扯强）
+4. 输出一段完整的、指令性强的 System Instruction
+5. 针对长篇结构，设计"螺旋式上升"的剧情结构（个人→势力→体系，生存→利益→信仰）
+6. 章节标题生成时不要包含"第X章"字样
+7. 章节强制格式：**内容**：... **【悬疑点】**：... **【爽点】**：...
+8. 不要包含任何解释性文字，直接输出优化后的 Instruction 内容`
+
+    const result = await this.callGemini(prompt, undefined, {
+      temperature: 0.7,
+      maxOutputTokens: 4000,
+    })
+
+    return this.sanitizeText(result)
+  }
+
+  /**
    * 生成完整大纲
    */
-  async generateOutline(novelType: string, theme: string): Promise<string> {
-    const systemInstruction = buildSystemInstruction()
-    const constraints = buildConstraints(novelType, theme)
+  async generateOutline(
+    novelType: string,
+    theme: string,
+    writingIdea?: string,
+    professionalPrompt?: string
+  ): Promise<string> {
+    // 如果提供了专业提示词，优先使用
+    let systemInstruction: string
+    if (professionalPrompt && professionalPrompt.trim()) {
+      systemInstruction = professionalPrompt
+    } else {
+      systemInstruction = buildSystemInstruction()
+    }
+
+    // 构建约束条件
+    let constraints = buildConstraints(novelType, theme)
+
+    // 如果有写作思路但没有专业提示词，将写作思路添加到约束中
+    if (writingIdea && writingIdea.trim() && !professionalPrompt) {
+      constraints += `\n写作思路：${writingIdea}`
+    }
 
     const prompt = `${constraints}\n\n请根据以上要求生成完整的小说大纲。`
 
