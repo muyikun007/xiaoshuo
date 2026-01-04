@@ -1,0 +1,133 @@
+小说大纲生成器 - 用户配置指南
+====================================
+
+首次使用必读！
+--------------
+
+本程序需要配置 API 密钥才能使用。请按以下步骤操作：
+
+
+步骤 1: 创建配置文件
+--------------------
+
+在「小说大纲生成器.exe」同一目录下，创建一个名为「config.json」的文本文件。
+
+可以复制下面的模板，保存为 config.json：
+
+{
+  "api_key": "在这里填写你的 Gemini API 密钥",
+  "gemini_api_key": "在这里填写你的 Gemini API 密钥",
+
+  "mysql": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "数据库用户名",
+    "password": "数据库密码",
+    "database": "xiaoshuo",
+    "charset": "utf8mb4"
+  },
+
+  "auto_create_tables": true
+}
+
+
+步骤 2: 获取 API 密钥
+--------------------
+
+Google Gemini API 密钥获取方法：
+
+1. 访问: https://aistudio.google.com/app/apikey
+2. 登录 Google 账号
+3. 点击「创建 API 密钥」
+4. 复制生成的密钥，粘贴到上面 config.json 的对应位置
+
+
+步骤 3: 配置数据库（桌面版必需）
+--------------------------------
+
+如果使用桌面应用，需要安装 MySQL 数据库：
+
+1. 下载并安装 MySQL: https://dev.mysql.com/downloads/mysql/
+
+2. 创建数据库：
+   打开 MySQL 命令行，执行：
+   CREATE DATABASE xiaoshuo CHARACTER SET utf8mb4;
+
+3. 创建用户（可选，也可以使用 root 用户）：
+   CREATE USER 'xiaoshuo_user'@'localhost' IDENTIFIED BY '你的密码';
+   GRANT ALL PRIVILEGES ON xiaoshuo.* TO 'xiaoshuo_user'@'localhost';
+
+4. 将用户名和密码填写到 config.json 的 mysql 部分
+
+
+步骤 4: 运行程序
+----------------
+
+配置完成后，双击「小说大纲生成器.exe」即可运行。
+
+首次运行时，程序会自动创建所需的数据表（如果 auto_create_tables 设为 true）。
+
+
+目录结构示例
+------------
+
+正确的文件布局应该是这样的：
+
+某个文件夹/
+├── 小说大纲生成器.exe    <- 主程序
+└── config.json           <- 配置文件（你需要创建）
+
+
+常见问题
+--------
+
+Q: 运行时提示"未配置 API Key"
+A: 检查 config.json 是否在可执行文件同一目录，且内容格式正确
+
+Q: 如何检查配置文件格式是否正确？
+A: 可以使用在线 JSON 校验器：https://jsonlint.com/
+   将 config.json 内容粘贴进去检查
+
+Q: 数据库连接失败
+A: 1) 确保 MySQL 服务正在运行
+   2) 检查用户名、密码是否正确
+   3) 确保数据库 xiaoshuo 已创建
+
+Q: 提示缺少某些文件
+A: 确保可执行文件完整下载，没有被压缩软件破坏
+
+Q: 程序无法启动，闪退
+A: 1) 检查配置文件编码是否为 UTF-8
+   2) 检查配置文件中是否有中文引号（应使用英文引号）
+   3) 尝试在命令行运行，查看错误信息
+
+
+进阶配置（可选）
+----------------
+
+在 config.json 中还可以添加：
+
+1. 自定义小说类型：
+   "novel_types": [
+     "都市言情",
+     "都市商战",
+     "玄幻修真"
+   ]
+
+2. 自定义主题库：
+   "theme_library": [
+     "扫黑除恶",
+     "商业帝国",
+     "重生逆袭"
+   ]
+
+3. 微信支付二维码路径：
+   "wechat_pay_qr_path": "path/to/qr.png"
+
+
+技术支持
+--------
+
+微信: dddjs003
+
+祝使用愉快！

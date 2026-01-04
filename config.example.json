@@ -1,0 +1,44 @@
+{
+  "api_key": "YOUR_GEMINI_API_KEY_HERE",
+  "gemini_api_key": "YOUR_GEMINI_API_KEY_HERE",
+  "doubao_api_key": "",
+  "doubao_model": "",
+  "doubao_base_url": "https://ark.cn-beijing.volces.com/api/v3",
+  "claude_api_key": "",
+  "secret_key": "change-this-to-a-random-secret-key",
+
+  "mysql": {
+    "host": "localhost",
+    "port": 3306,
+    "user": "xiaoshuo_user",
+    "password": "your_password_here",
+    "database": "xiaoshuo",
+    "charset": "utf8mb4"
+  },
+
+  "auto_create_tables": true,
+
+  "wechat_pay_qr_path": "",
+
+  "novel_types": [
+    "都市言情",
+    "都市商战",
+    "都市权谋",
+    "现代官场",
+    "刑侦悬疑",
+    "悬疑灵异",
+    "玄幻修真",
+    "科幻未来"
+  ],
+
+  "theme_library": [
+    "扫黑除恶",
+    "反腐倡廉",
+    "商业帝国",
+    "豪门恩怨",
+    "重生逆袭",
+    "系统流"
+  ],
+
+  "_comment": "这是示例配置文件，请根据实际情况修改。api_key 字段为必填项，mysql 配置仅在使用桌面应用时需要。"
+}
